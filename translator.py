@@ -1,26 +1,49 @@
-from count import count
+import re
 
 
 def brainfuck_to_c(source):
-    legal = {">": "p += Y;\n", "<": "p -= Y;\n", ".": "putchar(*p);\n",
-             ",": "*p = getchar();\n", "+": "*p += X;\n", "-": "*p -= X;\n",
-             "[": "if (*p) do {\n  ", "]": "} while (*p);\n"}
-    illegal = ['+-', '<>', '[]', '><']
-    translated_c = ""
-    for char in source:
-        if char not in legal:
-            source = source.replace(char, '')
-    for i in range(len(source) - 1):
-        if source[i:i + 2] in illegal:
-            source = source.replace(source[i:i + 2], '')
+    # remove redundant code
+    sourceregex = re.compile(r'[^+-<>,.\[\]]')  # ^ means negation or not
+    source = re.sub(sourceregex, '', source)
 
+    # remove illegal values
+    empty = ''
+    while source != empty:
+        empty = source
+        source = re.sub('\+-|-\+|<>|><|\[\]', '', source)
+
+    # number of brackets
     if source.count("]") != source.count("["):
         return "Error!"
-    nums = count(source)
-    for tup in nums:
-        if tup[0] in legal:
-            translated_c += legal.get(tup[0]).replace('Y', str(tup[1])).replace('X', str(tup[1]))
 
-    return translated_c
+    braces = re.sub('[^\[\]]', '', source)
+    while braces.count('[]'):
+        braces = braces.replace('[]', '')
+    if braces:
+        return 'Error!'
 
+    # translation
+    translated_c = []
 
+    nums = re.findall('\++|-+|>+|<+|[.,\[\]]', source)  # returns a lost of strings
+    indent = 0
+    for x in nums:
+        if x[0] in '+-<>':
+            line = ('%sp %s= %s;\n' %
+                    ('*' if x[0] in '+-' else '',
+                     '+' if x[0] in '+>' else '-',
+                     len(x)))
+        elif x == '.':
+            line = 'putchar(*p);\n'
+        elif x == ',':
+            line = '*p = getchar();\n'
+        elif x == '[':
+            line = 'if (*p) do {\n'
+        elif x == ']':
+            line = '} while (*p);\n'
+            indent -= 1
+        translated_c.append('  ' * indent + line)
+        if x == '[':
+            indent += 1
+
+    return ''.join(translated_c)
