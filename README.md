@@ -1,5 +1,7 @@
 # Brainfuck_to_C
 
+# To do make GUI
+
 # Introduction
 
 Brainfuck is one of the most well-known esoteric programming languages. But it can be hard to understand any code longer that 5 characters. In this kata you have to solve that problem.
